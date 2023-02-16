@@ -27,11 +27,11 @@ class Regex {
 
 	/**
 	 * @return string
-	 * @todo: $params->attributes not implemented.
 	 */
 	public function __toString(): string {
 		$block_ns   = $this->params->namespace();
 		$block_name = $this->params->name();
+		$block_attributes = $this->params->attributes();
 
 		if ( 'core' === $block_ns ) {
 			$block = '[^/]*';
@@ -41,8 +41,19 @@ class Regex {
 			$name  = $block_name ? $block_name : '.*';
 			$block = $block_ns ? $block_ns . '/.*' : $name;
 		}
-		$attrs = $this->params->content() ? '.*' . $this->params->content() . '.*' : '.*';
 
-		return sprintf( '.*<!-- wp:%s ?%s/?-->.*', $block, $attrs );
+		$attrs = $this->params->content() ? '.*([^>].*' . $this->params->content() . ')' : '';
+
+		foreach ( $block_attributes as $attribute => $value ) {
+			if ( is_bool( $value ) ) {
+				$attrs .= '([^>].*\"' . $attribute . '\":' . ( ( $value ) ? 'true' : 'false' ) . ')';
+			} else if ( is_string( $value ) ) {
+				$attrs .= '([^>].*\"' . $attribute . '\":\"' . $value . '\")';
+			} else if ( is_int( $value ) ) {
+				$attrs .= '([^>].*\"' . $attribute . '\":' . $value . ')';
+			}
+		}
+
+		return sprintf( '.*<!-- wp:%s ?%s.*/?-->.*', $block, $attrs );
 	}
 }
